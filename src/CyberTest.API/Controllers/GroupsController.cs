@@ -50,15 +50,9 @@ public class GroupsController : ControllerBase
     public IActionResult UpdateGroup([FromRoute] int id, [FromBody] UpdateGroupRequest request)
     {
 
-        if (id != request.Id)
-        {
-            return BadRequest("Идентификатор в пути и в теле не совпадают.");
-        }
+        if (id != request.Id) return BadRequest("Идентификатор в пути и в теле не совпадают.");
      
-        if (!_groups.ContainsKey(id))
-        {
-            return NotFound($"Группа с идентификатором {id} не найдена.");
-        }
+        if (!_groups.ContainsKey(id)) return NotFound($"Группа с идентификатором {id} не найдена.");
 
         return NoContent();
     }
@@ -75,7 +69,6 @@ public class GroupsController : ControllerBase
 
         return NoContent();
     }
-
 
 
     public record GroupData(int Id, string Name, int DirectionId, int CourseId);

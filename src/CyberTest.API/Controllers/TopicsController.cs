@@ -7,6 +7,7 @@ namespace CyberTest.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 public class TopicsController : ControllerBase
 {
     private static readonly Dictionary<int, string> _topics = new()
@@ -22,16 +23,43 @@ public class TopicsController : ControllerBase
         { 9, "Законодательство в сфере кибербезопасности" }
     };
 
-    // Получить список всех тем кибербезопасности
+    // Получить список всех тем кибербезопасности с пагинацией
     [HttpGet]
-    public IActionResult GetAll()
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public IActionResult GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var result = _topics.Select(t => new {Id = t.Key, Name = t.Value});
-        return Ok(result);
+        // Задаём минимальные и максимальные параметры 
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 100) pageSize = 100;
+
+        var totalCount = _topics.Count;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var offset = (page - 1) * pageSize;
+
+        var items = _topics
+            .OrderBy(t => t.Key)
+            .Skip(offset)
+            .Take(pageSize)
+            .Select(t => new { Id = t.Key, Name = t.Value })
+            .ToList();
+
+        var response = new
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages,
+            Items = items
+        };
+
+        return Ok(response);
     }
 
     // Поиск темы по id
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById([FromRoute] int id)
     {
 
@@ -43,8 +71,33 @@ public class TopicsController : ControllerBase
         return Ok(new {Id = id, Name = name});
     }
 
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public IActionResult Search([FromQuery] string? sp)
+    {
+        // Если SearchParametr не передан или пустой - вернуть весь список
+        if (string.IsNullOrWhiteSpace(sp))
+        {
+            var AllData = _topics
+                .OrderBy(t => t.Key)
+                .Select(t => new {Id = t.Key, Name = t.Value});
+
+            return Ok(AllData);
+        }
+
+        // Иначе - фильтруем по подстрочке без учета регистра
+        var FilteredData = _topics
+            .Where(t => t.Value.Contains(sp, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(t => t.Key)
+            .Select(t => new { Id =  t.Key, Name = t.Value});
+
+        return Ok(FilteredData);
+    }
+
     // Создание темы
     [HttpPost]
+    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     public IActionResult CreateTopic([FromBody] CreateTopicRequest request)
     {
         var new_id = 10;
@@ -54,6 +107,9 @@ public class TopicsController : ControllerBase
 
     // Обновить уже существующую тему
     [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult UpdateTopic([FromRoute] int id, [FromBody] UpdateTopicRequest request)
     {
         if (id != request.Id)
@@ -73,6 +129,8 @@ public class TopicsController : ControllerBase
 
     // Удаление существующей темы
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult DeleteTopic([FromRoute] int id)
     {
         
