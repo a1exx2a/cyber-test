@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using System.Text.RegularExpressions;
+
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CyberTest.API.Controllers;
@@ -20,7 +22,7 @@ public class TopicsController : ControllerBase
         { 9, "Законодательство в сфере кибербезопасности" }
     };
 
-    // Получить список всех тем кибербезопасности.
+    // Получить список всех тем кибербезопасности
     [HttpGet]
     public IActionResult GetAll()
     {
@@ -32,26 +34,8 @@ public class TopicsController : ControllerBase
     [HttpGet("{id:int}")]
     public IActionResult GetById([FromRoute] int id)
     {
-        if (id <= 0)
-        {
-            return BadRequest("Идентификатор темы должден быть положительным числом.");
-        }
 
-
-        var topics = new Dictionary<int, string>
-        {
-            {1, "Парольная безопасность"},
-            {2, "Фишинг и социальная инженерия"},
-            {3, "Безопасность в социальных сетях"},
-            {4, "Защита персональных данных"},
-            {5, "Безопасность мобильных устройств"},
-            {6, "Wi-Fi безопасность"},
-            {7, "Основы криптографии"},
-            {8, "Цифровая гигиена"},
-            {9, "Законодательство в сфере кибербезопасности"}
-        };
-
-        if (!topics.TryGetValue(id, out var name))
+        if (!_topics.TryGetValue(id, out var name))
         {
             return NotFound($"Тема с идентификатором {id} не найдена.");
         }
@@ -67,27 +51,20 @@ public class TopicsController : ControllerBase
         return Created($"/api/topics/{new_id}", new {Id = new_id, Name = request.Name});
     }
 
-    // Модель запроса CreateTopic
-    public record CreateTopicRequest(string Name, string Slug);
 
     // Обновить уже существующую тему
     [HttpPut("{id:int}")]
     public IActionResult UpdateTopic([FromRoute] int id, [FromBody] UpdateTopicRequest request)
     {
-        if (id <= 0)
-        {
-            return BadRequest("Идентификатор темы должен быть положительным числом.");
-        }
-
         if (id != request.Id)
         {
             return BadRequest("Идентификатор в пути и в теле не совпадают.");
         }
 
-        // Поставил пока просто заглушку: предполагаем, что тема с id = 999 не существует
-        if (id == 999)
+        
+        if (!_topics.ContainsKey(id))
         {
-            return NotFound();
+            return NotFound($"Тема с идентификатором {id} не найдена.");
         }
 
         return NoContent(); // получаем 204 успех без тела ответа
@@ -98,20 +75,17 @@ public class TopicsController : ControllerBase
     [HttpDelete("{id:int}")]
     public IActionResult DeleteTopic([FromRoute] int id)
     {
-        if (id <= 0)
+        
+        if (!_topics.ContainsKey(id))
         {
-            return BadRequest("Идентификатор темы должен быть положительным числом.");
-        }
-
-        // Поставил пока просто заглушку: предполагаем, что тема с id = 999 не существует
-        if (id == 999)
-        {
-            return NotFound();
+            return NotFound($"Тема с идентификатором {id} не найдена.");
         }
 
         return NoContent();  // получаем 204 успех без тела ответа
     }
 
+    // Модель запроса CreateTopic
+    public record CreateTopicRequest(string Name, string Slug);
     // Модель запроса UpdateTopic
     public record UpdateTopicRequest(int Id, string Name, string Slug);
 
