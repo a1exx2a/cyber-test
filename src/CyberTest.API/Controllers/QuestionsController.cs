@@ -8,8 +8,7 @@ namespace CyberTest.API.Controllers;
 public class QuestionsController : ControllerBase
 {
     // Ключ — tuple (testId, questionId).
-    // Мы не можем использовать просто questionId, потому что
-    // вопрос с id=1 в тесте 1 и вопрос с id=1 в тесте 2 — разные.
+    // вопрос с id = 1 в тесте 1 и вопрос с id = 1 в тесте 2  разные.
     private static readonly Dictionary<(int, int), QuestionData> _questions = new()
     {
         { (1, 1), new QuestionData(1, "Что такое надёжный пароль?", 1, 1, "SingleChoice") },
@@ -21,29 +20,42 @@ public class QuestionsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetAll([FromRoute] int testId, [FromQuery] string? answerType = null)
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetAll(
+    [FromRoute] int testId,
+    [FromQuery] string? answerType = null,
+    [FromQuery] int? minNumber = null,
+    [FromQuery] int? maxNumber = null)
     {
-        // Все вопросы указонного теста
         var query = _questions
-            .Where(t => t.Key.Item1 == testId)
-            .Select(t => t.Value)
+            .Where(kv => kv.Key.Item1 == testId)
+            .Select(kv => kv.Value)
             .AsQueryable();
 
-        // Если передали тип ответа - валидация + фильтрация
         if (!string.IsNullOrWhiteSpace(answerType))
         {
             var allowed = new[] { "SingleChoice", "MultipleChoice", "Text" };
             if (!allowed.Contains(answerType, StringComparer.OrdinalIgnoreCase))
                 return BadRequest($"answerType должен быть одним из: {string.Join(", ", allowed)}");
 
-            query = query
-                .Where(q => q.AnswerType.Equals(answerType, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(q =>
+                q.AnswerType.Equals(answerType, StringComparison.OrdinalIgnoreCase));
         }
+
+        // Фильтр по номеру: если minNumber указан  отсекаем всё, что меньше
+        if (minNumber.HasValue)
+            query = query.Where(q => q.Number >= minNumber.Value);
+
+        // Аналогично для maxNumber
+        if (maxNumber.HasValue)
+            query = query.Where(q => q.Number <= maxNumber.Value);
 
         var result = query.OrderBy(q => q.Number).ToList();
 
-        if (!result.Any()) 
-            return NotFound($"Вопросы для теста {testId} не найдены.");
+        if (!result.Any())
+            return NotFound($"Вопросы с такими параметрами не найдены.");
 
         return Ok(result);
     }

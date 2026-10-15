@@ -18,16 +18,34 @@ public class TestsController : ControllerBase
     // Фильтрация по теме (topicId) и публичности (isPublic).
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
-    public IActionResult GetAll([FromQuery] int? topicId = null, [FromQuery] bool? isPublic = null)
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public IActionResult GetAll(
+    [FromQuery] int? topicId = null,
+    [FromQuery] bool? isPublic = null,
+    [FromQuery] string? sortBy = null,
+    [FromQuery] bool sortDescending = false)
     {
         var query = _tests.Values.AsQueryable();
 
-        // Если клиент передал topicId — фильтруем.
-        if (topicId.HasValue) query = query.Where(t => t.TopicId == topicId.Value);
+        if (topicId.HasValue)
+            query = query.Where(t => t.TopicId == topicId.Value);
 
-        // Если клиент передал isPublic — фильтруем по нему.
-        if (isPublic.HasValue) query = query.Where(t => t.IsPublic == isPublic.Value);
-        return Ok(query.OrderBy(t => t.Id));
+        if (isPublic.HasValue)
+            query = query.Where(t => t.IsPublic == isPublic.Value);
+
+        // Если sortBy null, вернёт null; switch сработает как default.
+        query = sortBy?.ToLower() switch
+        {
+            "title" => sortDescending
+                ? query.OrderByDescending(t => t.Title)
+                : query.OrderBy(t => t.Title),
+            _ => sortDescending
+                ? query.OrderByDescending(t => t.Id)
+                : query.OrderBy(t => t.Id)
+        };
+
+        return Ok(query);
     }
 
     [HttpGet("{id:int}")]
