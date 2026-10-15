@@ -73,10 +73,10 @@ public class TopicsController : ControllerBase
 
     [HttpGet("search")]
     [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
-    public IActionResult Search([FromQuery] string? sp)
+    public IActionResult Search([FromQuery] string? q)
     {
         // Если SearchParametr не передан или пустой - вернуть весь список
-        if (string.IsNullOrWhiteSpace(sp))
+        if (string.IsNullOrWhiteSpace(q))
         {
             var AllData = _topics
                 .OrderBy(t => t.Key)
@@ -87,7 +87,7 @@ public class TopicsController : ControllerBase
 
         // Иначе - фильтруем по подстрочке без учета регистра
         var FilteredData = _topics
-            .Where(t => t.Value.Contains(sp, StringComparison.OrdinalIgnoreCase))
+            .Where(t => t.Value.Contains(q, StringComparison.OrdinalIgnoreCase))
             .OrderBy(t => t.Key)
             .Select(t => new { Id =  t.Key, Name = t.Value});
 
@@ -100,8 +100,8 @@ public class TopicsController : ControllerBase
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     public IActionResult CreateTopic([FromBody] CreateTopicRequest request)
     {
-        var new_id = 10;
-        return Created($"/api/topics/{new_id}", new {Id = new_id, Name = request.Name});
+        var NewId = 10;
+        return Created($"/api/topics/{NewId}", new {Id = NewId, Name = request.Name});
     }
 
 

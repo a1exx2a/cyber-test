@@ -6,6 +6,7 @@ namespace CyberTest.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 public class GroupsController : ControllerBase
 {
     private static readonly Dictionary<int, GroupData> _groups = new()
@@ -19,6 +20,7 @@ public class GroupsController : ControllerBase
 
     // Получить список всех групп 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
     public IActionResult GetAll()
     {
         return Ok(_groups.Values);
@@ -26,6 +28,8 @@ public class GroupsController : ControllerBase
 
     // Получить группу по id
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById([FromRoute] int id)
     {
 
@@ -39,14 +43,19 @@ public class GroupsController : ControllerBase
 
     // Создание группы
     [HttpPost]
+    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     public IActionResult CreateGroup([FromBody] CreateGroupRequest request)
     {
-        var new_id = 5;
-        return Created($"/api/groups/{new_id}", new GroupData(new_id, request.Name, request.DirectionId, request.CourseId));
+        var NewId = 5;
+        return Created($"/api/groups/{NewId}", new GroupData(NewId, request.Name, request.DirectionId, request.CourseId));
     }
 
     // Обновить уже существующую группу
     [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult UpdateGroup([FromRoute] int id, [FromBody] UpdateGroupRequest request)
     {
 
@@ -58,7 +67,10 @@ public class GroupsController : ControllerBase
     }
 
     // Удаление существующей группы
+
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult DeleteGroup([FromRoute] int id)
     {
 
